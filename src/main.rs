@@ -33,7 +33,7 @@ use std::env;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{channel, Receiver};
 use std::time::Duration;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 
 use notification_filter::NotificationFilter;
 use process::Process;
@@ -92,15 +92,7 @@ fn main() {
         warn!("Polling for changes every {} ms", args.poll_interval);
     }
 
-    for path in args.paths {
-        match Path::new(&path).canonicalize() {
-            Ok(canonicalized) => watcher.watch(canonicalized).expect("unable to watch path"),
-            Err(_) => {
-                println!("invalid path: {}", path);
-                return;
-            }
-        }
-    }
+    watcher.watch(cwd).expect("unable to watch cwd");
 
     // Start child process initially, if necessary
     if args.run_initially {
