@@ -1,18 +1,16 @@
-extern crate glob;
-
 use std::io;
 use std::path::Path;
 
 use globset;
 use globset::{Glob, GlobSet, GlobSetBuilder};
 
-use gitignore;
+use ignore::Ignore;
 
 pub struct NotificationFilter {
     filters: GlobSet,
     filter_count: usize,
     ignores: GlobSet,
-    ignore_file: Option<gitignore::PatternSet>,
+    ignore: Option<Ignore>,
 }
 
 #[derive(Debug)]
@@ -24,7 +22,7 @@ pub enum Error {
 impl NotificationFilter {
     pub fn new(filters: Vec<String>,
                ignores: Vec<String>,
-               ignore_file: Option<gitignore::PatternSet>)
+               ignore: Option<Ignore>)
                -> Result<NotificationFilter, Error> {
         let mut filter_set_builder = GlobSetBuilder::new();
         for f in &filters {
@@ -47,7 +45,7 @@ impl NotificationFilter {
             filters: filter_set,
             filter_count: filters.len(),
             ignores: ignore_set,
-            ignore_file: ignore_file,
+            ignore: ignore,
         })
     }
 
@@ -61,8 +59,8 @@ impl NotificationFilter {
             return false;
         }
 
-        if let Some(ref ignore_file) = self.ignore_file {
-            if ignore_file.is_excluded(path) {
+        if let Some(ref ign) = self.ignore {
+            if ign.is_excluded(path) {
                 debug!("Ignoring {:?}: matched gitignore file", path);
                 return true;
             }

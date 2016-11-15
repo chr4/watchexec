@@ -2,8 +2,8 @@
 
 #[macro_use]
 extern crate clap;
-extern crate globset;
 extern crate env_logger;
+extern crate globset;
 extern crate libc;
 #[macro_use]
 extern crate log;
@@ -22,7 +22,7 @@ extern crate kernel32;
 extern crate mktemp;
 
 mod cli;
-mod gitignore;
+mod ignore;
 mod interrupt;
 mod notification_filter;
 mod process;
@@ -38,32 +38,6 @@ use std::path::{Path, PathBuf};
 use notification_filter::NotificationFilter;
 use process::Process;
 use watcher::{Event, Watcher};
-
-fn find_gitignore(path: &Path) -> Option<PathBuf> {
-    let mut p = path.to_owned();
-
-    loop {
-        let gitignore_path = p.join(".gitignore");
-        if gitignore_path.exists() {
-            return Some(gitignore_path);
-        }
-
-        // Stop if we see a .git directory
-        if let Ok(metadata) = p.join(".git").metadata() {
-            if metadata.is_dir() {
-                break;
-            }
-        }
-
-        if p.parent().is_none() {
-            break;
-        }
-
-        p.pop();
-    }
-
-    None
-}
 
 fn init_logger(debug: bool) {
     let mut log_builder = env_logger::LogBuilder::new();
@@ -101,16 +75,13 @@ fn main() {
         .canonicalize()
         .expect("unable to canonicalize cwd");
 
-    let mut gitignore_file = None;
-    if !args.no_vcs_ignore {
-        if let Some(gitignore_path) = find_gitignore(&cwd) {
-            debug!("Found .gitignore file: {:?}", gitignore_path);
+    let ignore = if !args.no_vcs_ignore {
+        ignore::load(&cwd).ok()
+    } else {
+        None
+    };
 
-            gitignore_file = gitignore::parse(&gitignore_path).ok();
-        }
-    }
-
-    let filter = NotificationFilter::new(args.filters, args.ignores, gitignore_file)
+    let filter = NotificationFilter::new(args.filters, args.ignores, ignore)
         .expect("unable to create notification filter");
 
     let (tx, rx) = channel();

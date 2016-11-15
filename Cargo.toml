@@ -1,6 +1,6 @@
 [package]
 name = "watchexec"
-version = "1.4.0"
+version = "1.5.0"
 authors = ["Matt Green <mattgreenrocks@gmail.com>"]
 description = "Executes commands in response to file modifications"
 documentation = "https://github.com/mattgreen/watchexec"
@@ -18,8 +18,8 @@ lto = true
 panic = "abort"
 
 [dependencies]
-glob = "0.2.11"
-globset = "0.1"
+globset = "0.1.2"
+ignore = "0.1.5"
 lazy_static = "0.2.1"
 libc = "0.2.16"
 log = "0.3.6"
