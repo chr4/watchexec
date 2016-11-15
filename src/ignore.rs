@@ -1,7 +1,7 @@
 extern crate ignore;
 
 use std::fs::File;
-use std::path::{MAIN_SEPARATOR, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use self::ignore::{Error, Match};
 use self::ignore::gitignore::{Gitignore, GitignoreBuilder};
@@ -11,7 +11,7 @@ pub fn load(cwd: &Path) -> Result<Ignore, Error> {
 
     let mut gitignore = None;
     if let Some(info) = get_gitinfo(cwd) {
-        let mut builder = GitignoreBuilder::new(info.root);
+        let mut builder = GitignoreBuilder::new(info.root.clone());
 
         for path in &info.ignore_paths {
             debug!("Found gitignore file: {:?}", path);
@@ -19,6 +19,8 @@ pub fn load(cwd: &Path) -> Result<Ignore, Error> {
             let mut file = try!(File::open(path));
             let mut contents = String::new();
             try!(file.read_to_string(&mut contents));
+
+            let subdirs = path.strip_prefix(&info.root).unwrap().parent().unwrap();
 
             for l in contents.lines() {
                 if l.is_empty() {
@@ -28,11 +30,12 @@ pub fn load(cwd: &Path) -> Result<Ignore, Error> {
                     continue;
                 }
 
-                try!(builder.add_line(Some(path.to_owned()), l));
+                let pattern = subdirs.join(l);
+                try!(builder.add_line(Some(path.to_owned()), &pattern.to_str().unwrap()));
 
                 // HACK: add all child entries
-                let all_children = format!("{}{}**", l, MAIN_SEPARATOR);
-                try!(builder.add_line(Some(path.to_owned()), &all_children));
+                let pattern_children = pattern.join("**");
+                try!(builder.add_line(Some(path.to_owned()), &pattern_children.to_str().unwrap()));
             }
         }
 
